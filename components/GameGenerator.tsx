@@ -55,12 +55,12 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     }
   };
 
-  // --- FONCTION RESET --- 
+  // --- FONCTION RESET PARTIELLE --- 
   const handleReset = () => {
-    setGeneratedCode(null);
-    setIframeKey(0);
-    setMessages([{ role: 'ai', content: 'Le serveur est sécurisé et prêt. Quel jeu voulez-vous créer ?' }]);
-    setInput("");
+    setGeneratedCode(null);     // Reset aperçu actuel
+    setIframeKey(prev => prev + 1);  // Refresh iframe
+    setInput("");               // Reset input actuel
+    // ✅ messages préservés (historique discussion)
   };
 
   return (
