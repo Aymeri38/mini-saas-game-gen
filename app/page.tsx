@@ -1,5 +1,6 @@
 "use client";
 
+import GameGenerator from "@/components/GameGenerator";
 import { useState } from "react";
 import { Play, Hammer, Code2, ArrowLeft, Star, Clock, User } from "lucide-react";
 import PongGame from "@/components/PongGame";
@@ -180,18 +181,11 @@ export default function Home() {
         <PongGame onBack={handleBack} />
       )}
 
-      {/* --- VUE 4 : MODE DEV (Placeholder) --- */}
+      {/* --- VUE 4 : MODE DEV (STUDIO) --- */}
       {view === 'dev' && (
-        <div className="flex flex-col items-center justify-center h-[50vh] space-y-6 text-center">
-          <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center">
-            <Code2 size={40} className="text-purple-400" />
-          </div>
-          <h2 className="text-3xl font-bold">Studio de Création</h2>
-          <p className="text-slate-400 max-w-md">
-            Ce module permettra de générer du code React à partir d'un prompt textuel et de l'ajouter automatiquement à la bibliothèque.
-          </p>
-        </div>
+        <GameGenerator onBack={() => setView('menu')} />
       )}
+
     </main>
   );
 }
