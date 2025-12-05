@@ -77,7 +77,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     const handleGameOver = (e: MessageEvent) => {
       if (e.data === 'GAME_OVER') {
         setGameState('ready');
-        setIframeKey(prev => prev + 1); // Refresh iframe
+        setIframeKey(prev => prev + 1);
       }
     };
 
@@ -88,7 +88,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
   const getOverlayContent = () => {
     if (!generatedCode) {
       return (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 bg-black/80 backdrop-blur-sm">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 bg-black/80 backdrop-blur-sm z-40">
           <MonitorPlay size={48} className="mb-4 opacity-50" />
           <p className="text-lg">Prêt à générer</p>
         </div>
@@ -97,14 +97,14 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
 
     if (gameState === 'ready') {
       return (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/70 backdrop-blur-sm rounded-lg">
-          <Play size={64} className="mb-6 text-green-400 animate-pulse" />
-          <p className="text-2xl font-bold mb-4">Cliquez PLAY pour lancer !</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black/90 backdrop-blur-md z-50 rounded-lg">
+          <Play size={80} className="mb-8 text-green-400 animate-bounce drop-shadow-2xl" />
+          <p className="text-3xl font-black mb-6 text-shadow-lg drop-shadow-2xl">Cliquez PLAY pour lancer !</p>
           <button 
             onClick={handlePlay}
-            className="px-8 py-4 bg-green-500 hover:bg-green-600 text-xl font-bold rounded-full shadow-2xl transition-all transform hover:scale-105"
+            className="px-12 py-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-2xl font-black rounded-full shadow-2xl transition-all transform hover:scale-110 hover:shadow-3xl border-4 border-green-400/50 backdrop-blur-sm z-50"
           >
-            <Play size={24} className="inline mr-2" /> PLAY
+            <Play size={32} className="inline mr-3 animate-pulse" /> PLAY
           </button>
         </div>
       );
@@ -177,7 +177,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        {/* PREVIEW AVEC OVERLAY CENTRAL */}
+        {/* PREVIEW - IFRAME TOUJOURS EN FOND */}
         <div className="flex-1 flex flex-col bg-black relative">
           <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between">
             <span className="text-xs font-mono text-slate-400 flex items-center gap-2">
@@ -204,20 +204,21 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
           </div>
 
           <div className="flex-1 w-full h-full relative">
-            {generatedCode ? (
-              <>
-                <iframe 
-                  ref={iframeRef}
-                  key={iframeKey}
-                  srcDoc={generatedCode}
-                  className="w-full h-full border-none bg-white"
-                  title={gameState === 'playing' ? "Game Playing" : "Game Preview"}
-                  sandbox="allow-scripts allow-modals allow-pointer-lock"
-                />
-                {getOverlayContent()}
-              </>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+            {/* IFRAME TOUJOURS VISIBLE EN FOND */}
+            {generatedCode && (
+              <iframe 
+                ref={iframeRef}
+                key={iframeKey}
+                srcDoc={generatedCode}
+                className="w-full h-full border-none bg-white"
+                title={gameState === 'playing' ? "Game Playing" : "Game Preview"}
+                sandbox="allow-scripts allow-modals allow-pointer-lock"
+              />
+            )}
+            {/* OVERLAYS PAR-DESSUS */}
+            {getOverlayContent()}
+            {!generatedCode && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 z-40">
                 <MonitorPlay size={48} className="mb-4 opacity-50" />
                 <p>Prêt à générer</p>
               </div>
