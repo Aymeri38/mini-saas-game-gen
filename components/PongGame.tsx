@@ -1,7 +1,6 @@
-// components/PongGame.tsx
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export default function PongGame({ onBack }: { onBack: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,6 +39,18 @@ export default function PongGame({ onBack }: { onBack: () => void }) {
       ctx.fillText(text, x, y);
     };
 
+    // --- FONCTION RESET ---
+    const resetGame = useCallback(() => {
+      player.score = 0;
+      computer.score = 0;
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.dx = 4;
+      ball.dy = 4;
+      player.y = 150;
+      computer.y = 150;
+    }, []);
+
     // --- BOUCLE DE JEU ---
     const update = () => {
       ball.x += ball.dx;
@@ -73,17 +84,15 @@ export default function PongGame({ onBack }: { onBack: () => void }) {
       // Score
       if (ball.x - ball.radius < 0) {
         computer.score++;
-        resetBall();
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = -ball.dx;
       } else if (ball.x + ball.radius > canvas.width) {
         player.score++;
-        resetBall();
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = -ball.dx;
       }
-    };
-
-    const resetBall = () => {
-      ball.x = canvas.width / 2;
-      ball.y = canvas.height / 2;
-      ball.dx = -ball.dx;
     };
 
     const render = () => {
@@ -119,13 +128,24 @@ export default function PongGame({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
       <div className="flex justify-between w-full mb-4 px-4">
-        <h2 className="text-xl font-bold text-white">Pong Arena</h2>
-        <button 
-          onClick={onBack}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
-        >
-          Quitter
-        </button>
+        <h2 className="text-xl font-bold text-white">Pong Arena IA</h2>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              // Reset game logic here if needed
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-medium rounded transition"
+          >
+            🔄 Reset
+          </button>
+          <button 
+            onClick={onBack}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
+          >
+            Quitter
+          </button>
+        </div>
       </div>
       <canvas 
         ref={canvasRef} 
