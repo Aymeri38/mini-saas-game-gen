@@ -56,6 +56,15 @@ export default function Home() {
     }
   };
 
+  // 🔥 NOUVELLE FONCTION : Reset complet du jeu
+  const handleRestartGame = () => {
+    setCurrentCode(INITIAL_CODE);
+    setMessages([]);
+    // Bonus : focus sur input chat
+    const chatInput = document.querySelector('input[placeholder*="Message"]') as HTMLInputElement;
+    chatInput?.focus();
+  };
+
   return (
     <main className="flex h-screen w-full overflow-hidden">
       {/* Colonne Gauche: Chat (35-40% largeur) */}
@@ -67,9 +76,12 @@ export default function Home() {
         />
       </div>
 
-      {/* Colonne Droite: Preview (Reste) */}
+      {/* Colonne Droite: Preview (Reste) + BOUTON FONCTIONNEL */}
       <div className="flex-1 h-full">
-        <GamePreview code={currentCode} />
+        <GamePreview 
+          code={currentCode} 
+          onRestart={handleRestartGame} 
+        />
       </div>
     </main>
   );
