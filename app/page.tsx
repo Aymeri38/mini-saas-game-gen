@@ -11,6 +11,48 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"play" | "create">("play");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentGame, setCurrentGame] = useState(null);
+  
+  const sendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+    
+    const userMessage = { text: message, isUser: true };
+    setMessages(prev => [...prev, userMessage]);
+    setMessage("");
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/create-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessages(prev => [...prev, {
+          text: `Voici ton jeu ${data.game.emoji} ${data.game.name} !`,
+          game: data.game,
+          isUser: false
+        }]);
+        setCurrentGame(data.game);
+      } else {
+        setMessages(prev => [...prev, {
+          text: "❌ Erreur: " + (data.error || 'Jeu non créé'),
+          isUser: false
+        }]);
+      }
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        text: "❌ Erreur réseau",
+        isUser: false
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -96,39 +138,55 @@ export default function Home() {
             {/* Chat colonne milieu */}
             <div className="flex-1 border-r p-6">
               <div className="h-full flex flex-col">
-                <div className="flex-1 p-4 bg-gray-50 rounded-xl mb-4 overflow-y-auto">
-                  <div className="text-center text-gray-500 py-8">
-                    <Send className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p>Demande-moi de créer un jeu !</p>
-                    <p className="text-sm mt-1">"Crée un pong" 🎮</p>
-                  </div>
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`mb-4 p-3 rounded-xl ${
-                      msg.isUser
-                        ? 'bg-indigo-500 text-white ml-auto max-w-xs'
-                        : 'bg-white shadow-sm'
-                    }`}>
-                      {msg.text}
+                <div className="flex-1 p-4 bg-gray-50 rounded-xl mb-4 overflow-y-auto space-y-2">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <Send className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p>Demande-moi de créer un jeu !</p>
+                      <p className="text-sm mt-1">"Crée un pong" 🎮</p>
                     </div>
-                  ))}
+                  ) : (
+                    messages.map((msg, i) => (
+                      <div key={i} className={`p-3 rounded-xl max-w-xs ${
+                        msg.isUser
+                          ? 'bg-indigo-500 text-white ml-auto'
+                          : 'bg-white shadow-sm'
+                      }`}>
+                        {msg.game ? (
+                          <div>
+                            <div>{msg.text}</div>
+                            <div className="mt-2 p-2 bg-green-100 rounded text-xs">
+                              <strong>{msg.game.emoji} {msg.game.name}</strong><br/>
+                              {msg.game.instructions}
+                            </div>
+                          </div>
+                        ) : (
+                          msg.text
+                        )}
+                      </div>
+                    ))
+                  )}
+                  {isLoading && (
+                    <div className="p-3 bg-white shadow-sm rounded-xl">
+                      <div className="flex items-center gap-2 text-emerald-600">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Je crée ton jeu... 🎮</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-100"
                     placeholder="Tape ton idée de jeu..."
                   />
                   <button 
-                    onClick={() => {
-                      if (message.trim()) {
-                        setMessages([...messages, { text: message, isUser: true }]);
-                        setMessage("");
-                        // TODO: Appel API vers /api/create-game
-                        console.log("Envoi:", message);
-                      }
-                    }}
-                    disabled={!message.trim()}
+                    onClick={sendMessage}
+                    disabled={!message.trim() || isLoading}
                     className="p-3 bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 text-white rounded-xl shadow-lg hover:shadow-xl transition-all disabled:cursor-not-allowed"
                   >
                     <Send className="w-5 h-5" />
@@ -139,14 +197,25 @@ export default function Home() {
             
             {/* Preview colonne droite */}
             <div className="w-96 relative bg-gradient-to-b from-gray-50 to-white">
-              <div className="p-6 text-center">
-                <RefreshCw className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-spin" />
-                <h3 className="font-bold text-xl mb-2">Preview Live</h3>
-                <p className="text-gray-500 text-sm">Aucun jeu chargé</p>
-              </div>
-              <button className="absolute bottom-6 left-1/2 -translate-x-1/2 w-48 bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-6 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all">
-                🔄 Redémarrer
-              </button>
+              {currentGame ? (
+                <div className="p-4 h-full flex flex-col">
+                  <div className="text-3xl mb-4 text-center">{currentGame.emoji}</div>
+                  <h3 className="font-bold text-xl mb-4 text-center">{currentGame.name}</h3>
+                  <div className="flex-1 bg-gray-900 rounded-xl p-2 overflow-auto text-xs font-mono text-green-400 mb-4">
+                    {/* Aperçu du code */}
+                    <pre>{currentGame.code.substring(0, 500)}...</pre>
+                  </div>
+                  <button className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all">
+                    📋 Copier le code
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 text-center">
+                  <RefreshCw className="w-16 h-16 text-gray-400 mx-auto mb-4 animate-spin" />
+                  <h3 className="font-bold text-xl mb-2">Preview Live</h3>
+                  <p className="text-gray-500 text-sm">Aucun jeu chargé</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
