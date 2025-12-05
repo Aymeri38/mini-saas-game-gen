@@ -16,6 +16,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [iframeKey, setIframeKey] = useState(0);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -31,6 +32,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
 
       if (result.success && result.code) {
         setGeneratedCode(result.code);
+        setIframeKey(prev => prev + 1); // Force refresh iframe
         setMessages(prev => [...prev, { 
           role: 'ai', 
           content: `Jeu généré via le serveur ! Testez-le à droite.` 
@@ -53,9 +55,17 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     }
   };
 
+  // --- FONCTION RESET --- 
+  const handleReset = () => {
+    setGeneratedCode(null);
+    setIframeKey(0);
+    setMessages([{ role: 'ai', content: 'Le serveur est sécurisé et prêt. Quel jeu voulez-vous créer ?' }]);
+    setInput("");
+  };
+
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-white">
-      {/* HEADER */}
+      {/* HEADER AVEC RESET */}
       <header className="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="text-slate-400 hover:text-white transition">
@@ -64,6 +74,15 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
           <span className="font-bold flex items-center gap-2">
             <Code size={18} className="text-blue-400" /> Studio Sécurisé
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleReset}
+            className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-black text-sm font-medium rounded transition shadow-md"
+            title="Relancer un nouveau jeu"
+          >
+            <RefreshCw size={14} /> Reset
+          </button>
         </div>
       </header>
 
@@ -110,17 +129,27 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        {/* DROITE : PREVIEW */}
+        {/* DROITE : PREVIEW AVEC RESET ÉTAT */}
         <div className="flex-1 flex flex-col bg-black relative">
           <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between">
             <span className="text-xs font-mono text-slate-400 flex items-center gap-2">
               <MonitorPlay size={14} /> Aperçu Live
             </span>
+            {generatedCode && (
+              <button 
+                onClick={handleReset}
+                className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black text-xs rounded font-medium transition flex items-center gap-1"
+                title="Relancer le jeu"
+              >
+                <RefreshCw size={12} /> Reset
+              </button>
+            )}
           </div>
 
           <div className="flex-1 w-full h-full relative">
             {generatedCode ? (
               <iframe 
+                key={iframeKey}
                 srcDoc={generatedCode}
                 className="w-full h-full border-none bg-white"
                 title="Game Preview"
