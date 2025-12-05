@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Send, ArrowLeft, MonitorPlay, Code, RefreshCw, AlertCircle } from "lucide-react";
-import OpenAI from "openai"; // Import officiel OpenAI
-
-// Récupération de la clé API
-const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || "";
+import { Send, ArrowLeft, MonitorPlay, Code, RefreshCw } from "lucide-react";
+import { generateGameCode } from "@/app/actions"; // On importe la Server Action
 
 type Message = {
   role: 'user' | 'ai';
@@ -15,19 +12,13 @@ type Message = {
 export default function GameGenerator({ onBack }: { onBack: () => void }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', content: 'Prêt à coder ! Décrivez le jeu que vous souhaitez (ex: "Un Pong version Matrix", "Un Snake multicolore").' }
+    { role: 'ai', content: 'Le serveur est sécurisé et prêt. Quel jeu voulez-vous créer ?' }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    
-    // Vérification basique
-    if (!API_KEY) {
-      alert("Erreur : Clé NEXT_PUBLIC_OPENAI_API_KEY manquante dans .env.local");
-      return;
-    }
 
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
@@ -35,50 +26,27 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     setIsGenerating(true);
 
     try {
-      // 1. Initialisation du client OpenAI
-      const openai = new OpenAI({
-        apiKey: API_KEY,
-        dangerouslyAllowBrowser: true // Nécessaire pour utiliser OpenAI directement dans le navigateur
-      });
+      // APPEL AU SERVEUR (Sécurisé)
+      const result = await generateGameCode(userMsg);
 
-      // 2. Le System Prompt (Les instructions strictes pour l'IA)
-      const systemPrompt = `
-        Tu es un expert en développement de jeux web HTML5/JS.
-        Ta mission : Créer un jeu complet, jouable, contenu dans un SEUL fichier HTML.
-        Règles strictes :
-        1. Tout le CSS doit être dans <style>.
-        2. Tout le JS doit être dans <script>.
-        3. Le code doit être robuste (gestion des erreurs).
-        4. Pas de Markdown (pas de \`\`\`). Donne juste le code brut.
-        5. Utilise des couleurs modernes et un design sombre (#111).
-      `;
-
-      // 3. Appel à l'API (Chat Completion)
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o", // ou "gpt-3.5-turbo" si vous voulez économiser des crédits
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Crée ce jeu : ${userMsg}` }
-        ],
-      });
-
-      let text = completion.choices[0].message.content || "";
-
-      // Nettoyage au cas où GPT ajoute quand même du markdown
-      text = text.replace(/```html/g, '').replace(/```/g, '');
-
-      // 4. Mise à jour de l'interface
-      setGeneratedCode(text);
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        content: `Jeu généré avec succès via OpenAI ! Regardez à droite ->` 
-      }]);
+      if (result.success && result.code) {
+        setGeneratedCode(result.code);
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          content: `Jeu généré via le serveur ! Testez-le à droite.` 
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'ai', 
+          content: "Erreur lors de la génération côté serveur." 
+        }]);
+      }
 
     } catch (error) {
-      console.error("Erreur OpenAI:", error);
+      console.error(error);
       setMessages(prev => [...prev, { 
         role: 'ai', 
-        content: "Erreur lors de la génération. Vérifiez votre clé API ou vos crédits." 
+        content: "Erreur de communication avec le serveur." 
       }]);
     } finally {
       setIsGenerating(false);
@@ -94,17 +62,12 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
             <ArrowLeft size={20} />
           </button>
           <span className="font-bold flex items-center gap-2">
-            <Code size={18} className="text-green-400" /> Studio OpenAI {/* Indicateur visuel vert pour OpenAI */}
+            <Code size={18} className="text-blue-400" /> Studio Sécurisé
           </span>
         </div>
-        {!API_KEY && (
-          <div className="flex items-center gap-2 text-red-400 text-xs border border-red-900 bg-red-900/20 px-3 py-1 rounded">
-            <AlertCircle size={12} /> Clé API manquante
-          </div>
-        )}
       </header>
 
-      {/* RESTE DE L'INTERFACE (Identique à avant) */}
+      {/* RESTE DE L'INTERFACE (Chat + Preview) */}
       <div className="flex-1 flex overflow-hidden">
         {/* GAUCHE : CHAT */}
         <div className="w-1/3 min-w-[350px] border-r border-slate-800 flex flex-col bg-slate-900/50">
@@ -121,7 +84,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
             {isGenerating && (
               <div className="flex justify-start">
                 <div className="bg-slate-800 p-3 rounded-lg text-sm flex items-center gap-2">
-                  <RefreshCw size={14} className="animate-spin text-green-400" /> Génération GPT en cours...
+                  <RefreshCw size={14} className="animate-spin text-blue-400" /> Génération Server-Side...
                 </div>
               </div>
             )}
@@ -133,13 +96,13 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                placeholder="Ex: Un Flappy Bird où l'oiseau est un carré bleu..."
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-green-500 resize-none h-24"
+                placeholder="Ex: Un jeu de mémoire avec des cartes..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-blue-500 resize-none h-24"
               />
               <button 
                 onClick={handleSend}
                 disabled={isGenerating || !input.trim()}
-                className="absolute bottom-3 right-3 p-2 bg-green-600 hover:bg-green-500 rounded text-white disabled:opacity-50 transition"
+                className="absolute bottom-3 right-3 p-2 bg-blue-600 hover:bg-blue-500 rounded text-white disabled:opacity-50 transition"
               >
                 <Send size={16} />
               </button>
@@ -166,7 +129,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
                 <MonitorPlay size={48} className="mb-4 opacity-50" />
-                <p>En attente de GPT...</p>
+                <p>Prêt à générer</p>
               </div>
             )}
           </div>
