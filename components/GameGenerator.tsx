@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Send, ArrowLeft, MonitorPlay, Code, RefreshCw } from "lucide-react";
-import { generateGameCode } from "@/app/actions"; // On importe la Server Action
+import { Send, ArrowLeft, MonitorPlay, Code, RefreshCw, Play } from "lucide-react";
+import { generateGameCode } from "@/app/actions";
 
 type Message = {
   role: 'user' | 'ai';
@@ -17,6 +17,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  const [gameState, setGameState] = useState<'preview' | 'ready' | 'playing'>('preview');
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -25,18 +26,19 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setInput("");
     setIsGenerating(true);
+    setGameState('preview'); // Reset état jeu
 
     try {
-      // APPEL AU SERVEUR (Sécurisé)
       const result = await generateGameCode(userMsg);
 
       if (result.success && result.code) {
         setGeneratedCode(result.code);
-        setIframeKey(prev => prev + 1); // Force refresh iframe
+        setIframeKey(prev => prev + 1);
         setMessages(prev => [...prev, { 
           role: 'ai', 
-          content: `Jeu généré via le serveur ! Testez-le à droite.` 
+          content: `Jeu généré ! Cliquez **PLAY** pour le lancer.` 
         }]);
+        setGameState('ready'); // Prêt à lancer
       } else {
         setMessages(prev => [...prev, { 
           role: 'ai', 
@@ -55,17 +57,23 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
     }
   };
 
-  // --- FONCTION RESET PARTIELLE --- 
+  // Play button
+  const handlePlay = () => {
+    setGameState('playing');
+    setIframeKey(prev => prev + 1); // Refresh iframe pour relancer
+  };
+
+  // Reset partiel
   const handleReset = () => {
-    setGeneratedCode(null);     // Reset aperçu actuel
-    setIframeKey(prev => prev + 1);  // Refresh iframe
-    setInput("");               // Reset input actuel
-    // ✅ messages préservés (historique discussion)
+    setGeneratedCode(null);
+    setIframeKey(prev => prev + 1);
+    setInput("");
+    setGameState('preview');
+    // messages préservés
   };
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-white">
-      {/* HEADER AVEC RESET */}
       <header className="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="text-slate-400 hover:text-white transition">
@@ -86,9 +94,7 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
         </div>
       </header>
 
-      {/* RESTE DE L'INTERFACE (Chat + Preview) */}
       <div className="flex-1 flex overflow-hidden">
-        {/* GAUCHE : CHAT */}
         <div className="w-1/3 min-w-[350px] border-r border-slate-800 flex flex-col bg-slate-900/50">
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, idx) => (
@@ -129,32 +135,53 @@ export default function GameGenerator({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        {/* DROITE : PREVIEW AVEC RESET ÉTAT */}
+        {/* PREVIEW AVEC ÉTATS */}
         <div className="flex-1 flex flex-col bg-black relative">
           <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between">
             <span className="text-xs font-mono text-slate-400 flex items-center gap-2">
-              <MonitorPlay size={14} /> Aperçu Live
+              <MonitorPlay size={14} /> {gameState === 'playing' ? 'Jeu en cours' : 'Aperçu Live'}
             </span>
-            {generatedCode && (
-              <button 
-                onClick={handleReset}
-                className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black text-xs rounded font-medium transition flex items-center gap-1"
-                title="Relancer le jeu"
-              >
-                <RefreshCw size={12} /> Reset
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {generatedCode && gameState === 'ready' && (
+                <button 
+                  onClick={handlePlay}
+                  className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded font-medium transition flex items-center gap-1 shadow-md"
+                  title="Lancer le jeu"
+                >
+                  <Play size={12} /> Play
+                </button>
+              )}
+              {generatedCode && (
+                <button 
+                  onClick={handleReset}
+                  className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black text-xs rounded font-medium transition flex items-center gap-1"
+                  title="Relancer le jeu"
+                >
+                  <RefreshCw size={12} /> Reset
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 w-full h-full relative">
             {generatedCode ? (
-              <iframe 
-                key={iframeKey}
-                srcDoc={generatedCode}
-                className="w-full h-full border-none bg-white"
-                title="Game Preview"
-                sandbox="allow-scripts allow-modals"
-              />
+              gameState === 'preview' || gameState === 'ready' ? (
+                <iframe 
+                  key={iframeKey}
+                  srcDoc={generatedCode}
+                  className="w-full h-full border-none bg-white"
+                  title="Game Preview"
+                  sandbox="allow-scripts allow-modals"
+                />
+              ) : (
+                <iframe 
+                  key={iframeKey}
+                  srcDoc={generatedCode}
+                  className="w-full h-full border-none bg-white"
+                  title="Game Playing"
+                  sandbox="allow-scripts allow-modals allow-pointer-lock"
+                />
+              )
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
                 <MonitorPlay size={48} className="mb-4 opacity-50" />
