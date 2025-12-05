@@ -1,4 +1,3 @@
-// Copie ce code → Colle dans app/page.tsx → npm run dev
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Play, Hammer, Send, RefreshCw } from "lucide-react";
@@ -10,6 +9,8 @@ const DEFAULT_GAMES = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"play" | "create">("play");
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
   
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -101,13 +102,35 @@ export default function Home() {
                     <p>Demande-moi de créer un jeu !</p>
                     <p className="text-sm mt-1">"Crée un pong" 🎮</p>
                   </div>
+                  {messages.map((msg, i) => (
+                    <div key={i} className={`mb-4 p-3 rounded-xl ${
+                      msg.isUser
+                        ? 'bg-indigo-500 text-white ml-auto max-w-xs'
+                        : 'bg-white shadow-sm'
+                    }`}>
+                      {msg.text}
+                    </div>
+                  ))}
                 </div>
                 <div className="flex gap-2">
                   <input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
                     className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                     placeholder="Tape ton idée de jeu..."
                   />
-                  <button className="p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all">
+                  <button 
+                    onClick={() => {
+                      if (message.trim()) {
+                        setMessages([...messages, { text: message, isUser: true }]);
+                        setMessage("");
+                        // TODO: Appel API vers /api/create-game
+                        console.log("Envoi:", message);
+                      }
+                    }}
+                    disabled={!message.trim()}
+                    className="p-3 bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 text-white rounded-xl shadow-lg hover:shadow-xl transition-all disabled:cursor-not-allowed"
+                  >
                     <Send className="w-5 h-5" />
                   </button>
                 </div>
