@@ -24,7 +24,7 @@ const GAMES_LIBRARY: GameData[] = [
     author: 'Aymeri38',
     description: 'Le classique revisité avec une IA réactive et un moteur physique fluide en React.',
     stars: 124,
-    lastUpdate: 'Aujourd\'hui',
+    lastUpdate: "Aujourd'hui",
     isPlayable: true, // C'est le seul qui marche pour l'instant !
   },
   {
@@ -48,9 +48,16 @@ const GAMES_LIBRARY: GameData[] = [
 ];
 
 export default function Home() {
-  // Navigation : 'menu' (accueil), 'library' (liste des jeux), 'playing' (jeu lancé), 'dev' (création)
-  const [view, setView] = useState<'menu' | 'library' | 'playing' | 'dev'>('menu');
+  // Navigation : 'menu' (accueil), 'library' (liste des jeux), 'playing' (jeu lancé), 'dev' (création), 'profile'
+  const [view, setView] = useState<'menu' | 'library' | 'playing' | 'dev' | 'profile'>('menu');
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+
+  // Simulation utilisateur connecté (à remplacer par vraie auth)
+  const user = {
+    name: 'Aymeri',
+    avatar: 'https://avatars.githubusercontent.com/u/204607066?v=4',
+    savedGames: ['pong-classic', 'rpg-quest']
+  };
 
   // Fonction pour lancer un jeu
   const launchGame = (gameId: string) => {
@@ -68,24 +75,36 @@ export default function Home() {
     }
   };
 
+  const goToProfile = () => setView('profile');
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-slate-950 text-white font-sans">
       
-      {/* HEADER SIMPLE (Sauf en jeu) */}
+      {/* HEADER AMÉLIORÉ AVEC PROFIL */}
       {view !== 'playing' && (
         <header className="w-full max-w-5xl flex justify-between items-center mb-12">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('menu')}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold">G</div>
             <span className="font-bold text-xl tracking-tight">GameGen SaaS</span>
           </div>
-          {view !== 'menu' && (
+          <div className="flex items-center gap-4">
+            {view !== 'menu' && (
+              <button 
+                onClick={handleBack}
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+              >
+                <ArrowLeft size={20} /> Retour
+              </button>
+            )}
             <button 
-              onClick={handleBack}
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+              onClick={goToProfile}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+              title="Votre profil"
             >
-              <ArrowLeft size={20} /> Retour
+              <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
+              <span className="hidden sm:inline">Profil</span>
             </button>
-          )}
+          </div>
         </header>
       )}
 
@@ -186,6 +205,79 @@ export default function Home() {
         <GameGenerator onBack={() => setView('menu')} />
       )}
 
+      {/* --- VUE 5 : PROFIL UTILISATEUR --- */}
+      {view === 'profile' && (
+        <div className="w-full max-w-2xl">
+          <div className="flex items-center gap-4 mb-8">
+            <button 
+              onClick={() => setView('menu')}
+              className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+            >
+              <ArrowLeft size={20} /> Retour
+            </button>
+            <div className="flex items-center gap-3 p-4 bg-slate-900 rounded-xl border border-slate-800">
+              <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
+              <div>
+                <h2 className="text-xl font-bold">{user.name}</h2>
+                <p className="text-slate-400">Membre depuis 2025</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Section jeux sauvegardés */}
+            <div className="bg-slate-900 p-6 rounded-xl border border-slate-800">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Star className="text-yellow-400" size={20} />
+                Jeux Sauvegardés ({user.savedGames.length})
+              </h3>
+              {user.savedGames.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {user.savedGames.map((gameId) => {
+                    const game = GAMES_LIBRARY.find(g => g.id === gameId);
+                    if (!game) return null;
+                    return (
+                      <div key={gameId} className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg">
+                        <div className="w-12 h-8 bg-gradient-to-r from-blue-900 to-purple-900 rounded flex items-center justify-center">
+                          <Play size={16} className="text-white opacity-50" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{game.title}</p>
+                          <p className="text-xs text-slate-400">Par {game.author}</p>
+                        </div>
+                        <button 
+                          onClick={() => launchGame(gameId)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs rounded font-medium"
+                        >
+                          Jouer
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-center py-8">Aucun jeu sauvegardé pour le moment.</p>
+              )}
+            </div>
+
+            {/* Section stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+                <div className="text-2xl font-bold text-blue-400">3</div>
+                <div className="text-sm text-slate-400">Jeux créés</div>
+              </div>
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+                <div className="text-2xl font-bold text-green-400">12</div>
+                <div className="text-sm text-slate-400">Heures jouées</div>
+              </div>
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+                <div className="text-2xl font-bold text-purple-400">2</div>
+                <div className="text-sm text-slate-400">Jeux sauvegardés</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
